@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-file="http://www.springframework.org/schema/integration/file" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration
+		http://www.springframework.org/schema/integration/spring-integration-2.1.xsd
+		http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file-2.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+	<int-file:inbound-channel-adapter id="filesInChannel" directory="file:orders/pending">
+		<int:poller id="poller" fixed-rate="10" /> <!-- fixed-rate="1000*60*10" -->
+	</int-file:inbound-channel-adapter>
+
+	<int:router method="process" input-channel="filesInChannel">
+		<bean class="pl.nadworny.cocktail.fileprocessing.FileProcessor" />
+	</int:router>
+
+	<int-file:outbound-channel-adapter id="filesOutChannel" directory="file:orders/processed"
+		delete-source-files="true"
+		filename-generator-expression="payload.name.substring(0, payload.name.length() - '.properties'.length()) + '-#{util.getGenerateTime()}' + '.properties'">
+	</int-file:outbound-channel-adapter>
+	<int-file:outbound-channel-adapter id="filesOutChannelRejected" directory="file:orders/rejected"
+		delete-source-files="true"
+		filename-generator-expression="payload.name.substring(0, payload.name.length() - '.properties'.length()) + '-#{util.getGenerateTime()}' + '.properties'">
+	</int-file:outbound-channel-adapter>
+	<int-file:outbound-channel-adapter id="filesOutChannelIgnored" directory="file:orders/ignored"
+		delete-source-files="true"
+		filename-generator-expression="payload.name.substring(0, payload.name.length() - '.properties'.length()) + '-#{util.getGenerateTime()}' + '.properties'">
+	</int-file:outbound-channel-adapter>
+
+	<bean id="util" class="pl.nadworny.cocktail.util.Util"></bean>
+</beans>
